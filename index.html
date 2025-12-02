@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Livros por ISBN</title>
+    <title>Consulta de Livros por ISBN - Planilha Personalizada</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -321,6 +321,38 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
+        .column-preview {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .column-preview h4 {
+            margin-bottom: 10px;
+            color: #065f46;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .preview-item {
+            padding: 5px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #e1e5eb;
+        }
+
+        .preview-label {
+            font-weight: bold;
+            color: #4b5563;
+        }
     </style>
 </head>
 <body>
@@ -336,10 +368,10 @@
                 
                 <div class="instructions">
                     <p><strong>Instruções:</strong> Insira os números ISBN (10 ou 13 dígitos) separados por vírgulas, espaços ou cada um em uma linha.</p>
-                    <p><strong>Exemplo:</strong> 9788535914849, 9788501112510, 9788532530783</p>
+                    <p><strong>Exemplo:</strong> 8574060232, 9788575960981</p>
                 </div>
                 
-                <textarea id="isbnInput" placeholder="Insira os ISBNs aqui...">9788535914849, 9788501112510, 9788532530783, 9788539004119, 9788571644953</textarea>
+                <textarea id="isbnInput" placeholder="Insira os ISBNs aqui...">8574060232, 9788575960981</textarea>
                 
                 <div class="buttons">
                     <button id="searchBtn" class="btn">
@@ -410,36 +442,47 @@
             let books = [];
             
             // Exemplo de livros para demonstração
-            const sampleBooks = [
+            /*const sampleBooks = [
                 {
                     title: "1984",
-                    author: "George Orwell",
+                    full_title: "1984",
+                    by_statement: "por George Orwell",
                     isbn: "9788535914849",
-                    year: "2009",
+                    publish_date: "2009",
                     pages: "416",
-                    publisher: "Companhia das Letras",
+                    publishers: "Companhia das Letras",
+                    publish_places: "São Paulo",
                     cover: "https://covers.openlibrary.org/b/id/7222246-L.jpg",
-                    description: "Um clássico distópico sobre um futuro sombrio onde o governo controla todos os aspectos da vida."
+                    description: "Um clássico distópico sobre um futuro sombrio onde o governo controla todos os aspectos da vida.",
+                    series: "Clássicos da Literatura",
+                    subjects: ["Ficção distópica", "Literatura inglesa", "Sátira política"],
+                    translators: [],
+                    illustrators: []
                 },
                 {
                     title: "O Alquimista",
-                    author: "Paulo Coelho",
+                    full_title: "O Alquimista: Uma fábula para seguir seus sonhos",
+                    by_statement: "Paulo Coelho",
                     isbn: "9788501112510",
-                    year: "2014",
+                    publish_date: "2014",
                     pages: "208",
-                    publisher: "Paralela",
+                    publishers: "Paralela",
+                    publish_places: "Rio de Janeiro",
                     cover: "https://covers.openlibrary.org/b/id/8908126-L.jpg",
-                    description: "A mágica história de Santiago, um menino pastor andaluz que viaja da Espanha ao Egito em busca de um tesouro enterrado nas pirâmides."
+                    description: "A mágica história de Santiago, um menino pastor andaluz que viaja da Espanha ao Egito em busca de um tesouro enterrado nas pirâmides.",
+                    series: "",
+                    subjects: ["Ficção brasileira", "Literatura de autoajuda", "Romance espiritual"],
+                    translators: [],
+                    illustrators: []
                 }
-            ];
+            ];*/
             
             // Função para extrair ISBNs do texto de entrada
             function extractISBNs(text) {
-                // Remove espaços extras e divide por vírgulas, espaços ou quebras de linha
                 return text.split(/[,\s\n]+/)
                     .map(isbn => isbn.trim())
                     .filter(isbn => isbn.length > 0)
-                    .filter(isbn => /^\d{10}(\d{3})?$/.test(isbn)); // Filtra apenas números com 10 ou 13 dígitos
+                    .filter(isbn => /^\d{10}(\d{3})?$/.test(isbn));
             }
             
             // Função para exibir mensagem de status
@@ -447,7 +490,6 @@
                 statusDiv.textContent = message;
                 statusDiv.className = `status ${type}`;
                 
-                // Remover a mensagem após alguns segundos para tipos 'success' e 'info'
                 if (type === 'success' || type === 'info') {
                     setTimeout(() => {
                         statusDiv.className = 'status';
@@ -458,7 +500,6 @@
             // Função para buscar informações de um livro por ISBN
             async function fetchBookInfo(isbn) {
                 try {
-                    // Tenta buscar da Open Library API
                     const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
                     
                     if (!response.ok) {
@@ -471,42 +512,64 @@
                     if (data[bookKey]) {
                         const bookData = data[bookKey];
                         
+                        // Extrair os dados específicos para o formato da planilha
                         return {
                             title: bookData.title || 'Título não disponível',
-                            author: bookData.authors ? bookData.authors.map(a => a.name).join(', ') : 'Autor desconhecido',
+                            full_title: bookData.full_title || bookData.title || 'Título não disponível',
+                            by_statement: bookData.by_statement || (bookData.authors ? bookData.authors.map(a => a.name).join(', ') : 'Autor desconhecido'),
                             isbn: isbn,
-                            year: bookData.publish_date || 'Ano não disponível',
-                            pages: bookData.number_of_pages || 'Número de páginas não disponível',
-                            publisher: bookData.publishers ? bookData.publishers.map(p => p.name).join(', ') : 'Editora não disponível',
+                            publish_date: bookData.publish_date || 'Data não disponível',
+                            pages: bookData.number_of_pages || '',
+                            publishers: bookData.publishers ? bookData.publishers.map(p => p.name).join('; ') : 'Editora não disponível',
+                            publish_places: bookData.publish_places ? bookData.publish_places.join('; ') : 'Local não disponível',
                             cover: bookData.cover ? bookData.cover.large : 'https://via.placeholder.com/100x140?text=Sem+Capa',
-                            description: bookData.subtitle || bookData.excerpts ? (bookData.excerpts[0] ? bookData.excerpts[0].text.substring(0, 200) + '...' : 'Descrição não disponível') : 'Descrição não disponível'
+                            description: bookData.subtitle || bookData.excerpts ? (bookData.excerpts[0] ? bookData.excerpts[0].text.substring(0, 200) + '...' : 'Descrição não disponível') : 'Descrição não disponível',
+                            series: bookData.series ? bookData.series.join('; ') : '',
+                            subjects: bookData.subjects ? bookData.subjects.map(s => s.name) : [],
+                            translators: bookData.translators ? bookData.translators.map(t => t.name) : [],
+                            illustrators: bookData.illustrators ? bookData.illustrators.map(i => i.name) : [],
+                            dewey_decimal_class: bookData.dewey_decimal_class ? bookData.dewey_decimal_class.join('; ') : ''
                         };
                     } else {
-                        // Se não encontrar na API, retorna um livro com dados básicos
                         return {
                             title: 'Livro não encontrado',
-                            author: 'Autor desconhecido',
+                            full_title: 'Livro não encontrado',
+                            by_statement: 'Autor desconhecido',
                             isbn: isbn,
-                            year: 'N/A',
+                            publish_date: 'N/A',
                             pages: 'N/A',
-                            publisher: 'N/A',
+                            publishers: 'N/A',
+                            publish_places: 'N/A',
                             cover: 'https://via.placeholder.com/100x140?text=Não+Encontrado',
-                            description: 'Não foi possível encontrar informações para este ISBN.'
+                            description: 'Não foi possível encontrar informações para este ISBN.',
+                            series: '',
+                            subjects: [],
+                            translators: [],
+                            illustrators: [],
+                            dewey_decimal_class: '',
+                            error: true
                         };
                     }
                 } catch (error) {
                     console.error(`Erro ao buscar ISBN ${isbn}:`, error);
                     
-                    // Retorna um livro com dados de erro
                     return {
                         title: 'Erro na busca',
-                        author: 'N/A',
+                        full_title: 'Erro na busca',
+                        by_statement: 'N/A',
                         isbn: isbn,
-                        year: 'N/A',
+                        publish_date: 'N/A',
                         pages: 'N/A',
-                        publisher: 'N/A',
+                        publishers: 'N/A',
+                        publish_places: 'N/A',
                         cover: 'https://via.placeholder.com/100x140?text=Erro',
-                        description: `Erro ao buscar informações: ${error.message}`
+                        description: `Erro ao buscar informações: ${error.message}`,
+                        series: '',
+                        subjects: [],
+                        translators: [],
+                        illustrators: [],
+                        dewey_decimal_class: '',
+                        error: true
                     };
                 }
             }
@@ -529,18 +592,20 @@
                 let html = '';
                 
                 booksArray.forEach(book => {
+                    const isError = book.error;
+                    
                     html += `
-                        <div class="book-card">
+                        <div class="book-card" style="${isError ? 'border-left: 4px solid #ef4444;' : ''}">
                             <img src="${book.cover}" alt="Capa do livro ${book.title}" class="book-cover" onerror="this.src='https://via.placeholder.com/100x140?text=Sem+Capa'">
                             <div class="book-details">
-                                <h3 class="book-title">${book.title}</h3>
-                                <p class="book-author">${book.author}</p>
+                                <h3 class="book-title">${book.full_title} ${isError ? '<span style="color:#ef4444; font-size:0.8rem;">(Não encontrado)</span>' : ''}</h3>
+                                <p class="book-author">${book.by_statement}</p>
                                 <p>${book.description}</p>
                                 <div class="book-info">
                                     <span class="info-item isbn"><strong>ISBN:</strong> ${book.isbn}</span>
                                     ${book.pages !== 'N/A' ? `<span class="info-item pages"><strong>Páginas:</strong> ${book.pages}</span>` : ''}
-                                    ${book.year !== 'N/A' ? `<span class="info-item year"><strong>Ano:</strong> ${book.year}</span>` : ''}
-                                    ${book.publisher !== 'N/A' ? `<span class="info-item"><strong>Editora:</strong> ${book.publisher}</span>` : ''}
+                                    ${book.publish_date !== 'N/A' ? `<span class="info-item year"><strong>Ano:</strong> ${book.publish_date}</span>` : ''}
+                                    ${book.publishers !== 'N/A' ? `<span class="info-item"><strong>Editora:</strong> ${book.publishers}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -548,9 +613,9 @@
                 });
                 
                 resultsContainer.innerHTML = html;
-                resultCounter.textContent = `${booksArray.length} livro(s)`;
-                exportBtn.disabled = false;
-                exportCsvBtn.disabled = false;
+                resultCounter.textContent = `${booksArray.filter(b => !b.error).length} de ${booksArray.length} livro(s)`;
+                exportBtn.disabled = booksArray.filter(b => !b.error).length === 0;
+                exportCsvBtn.disabled = booksArray.filter(b => !b.error).length === 0;
             }
             
             // Função para buscar livros
@@ -571,76 +636,255 @@
                 
                 showStatus(`Encontrados ${isbns.length} ISBN(s) válido(s). Buscando informações...`, 'info');
                 
-                // Ativar loading
                 loadingDiv.classList.add('active');
                 searchBtn.disabled = true;
                 
                 try {
-                    // Buscar informações para cada ISBN
                     books = [];
                     
-                    // Usar Promise.all para buscar todos os livros simultaneamente
                     const bookPromises = isbns.map(isbn => fetchBookInfo(isbn));
                     books = await Promise.all(bookPromises);
                     
-                    // Renderizar os resultados
                     renderBooks(books);
                     
-                    showStatus(`${books.filter(b => b.title !== 'Livro não encontrado' && b.title !== 'Erro na busca').length} de ${isbns.length} livro(s) encontrado(s) com sucesso!`, 'success');
+                    const successfulBooks = books.filter(b => !b.error).length;
+                    showStatus(`${successfulBooks} de ${isbns.length} livro(s) encontrado(s) com sucesso!`, successfulBooks === 0 ? 'error' : 'success');
                 } catch (error) {
                     console.error('Erro ao buscar livros:', error);
                     showStatus(`Erro ao buscar livros: ${error.message}`, 'error');
                 } finally {
-                    // Desativar loading
                     loadingDiv.classList.remove('active');
                     searchBtn.disabled = false;
                 }
             }
             
-            // Função para exportar para Excel
+            // Função para formatar dados para a planilha especificada
+            function prepareSpreadsheetData(booksArray) {
+                // Filtrar apenas livros encontrados com sucesso
+                const successfulBooks = booksArray.filter(book => !book.error);
+                
+                // Preparar dados no formato especificado
+                return successfulBooks.map(book => {
+                    // Preparar os 4 primeiros assuntos (colunas O, P, Q, R)
+                    const subjects = Array.isArray(book.subjects) ? book.subjects : [];
+                    const subject1 = subjects.length > 0 ? subjects[0] : '';
+                    const subject2 = subjects.length > 1 ? subjects[1] : '';
+                    const subject3 = subjects.length > 2 ? subjects[2] : '';
+                    const subject4 = subjects.length > 3 ? subjects[3] : '';
+                    
+                    // Preparar entrada secundária (coluna S)
+                    const secondaryEntries = [];
+                    if (book.translators && book.translators.length > 0) {
+                        secondaryEntries.push(`Tradutor(es): ${book.translators.join(', ')}`);
+                    }
+                    if (book.illustrators && book.illustrators.length > 0) {
+                        secondaryEntries.push(`Ilustrador(es): ${book.illustrators.join(', ')}`);
+                    }
+                    const secondaryEntry = secondaryEntries.join('; ');
+                    
+                    // Retornar objeto com a estrutura da planilha
+                    return {
+                        // Coluna A: "" (vazio)
+                        A: "",
+                        // Coluna B: Título (full_title)
+                        B: book.full_title || book.title || "",
+                        // Coluna C: Volume (vazio por padrão)
+                        C: "",
+                        // Coluna D: Autor (by_statement)
+                        D: book.by_statement || "",
+                        // Coluna E: Exemplar (vazio por padrão)
+                        E: "",
+                        // Coluna F: Edição (vazio por padrão)
+                        F: "",
+                        // Coluna G: Local (publish_places)
+                        G: book.publish_places || "",
+                        // Coluna H: Editora (publishers)
+                        H: book.publishers || "",
+                        // Coluna I: Data da Publicação (publish_date)
+                        I: book.publish_date || "",
+                        // Coluna J: Origem (vazio por padrão)
+                        J: "",
+                        // Coluna K: Data de entrada (vazio por padrão)
+                        K: "",
+                        // Coluna L: Nota de Conteúdo (vazio por padrão)
+                        L: "",
+                        // Coluna M: Coleções (series)
+                        M: book.series || "",
+                        // Coluna N: Notas gerais - Público alvo (vazio por padrão)
+                        N: "",
+                        // Coluna O: Assunto 1 (primeiro subject)
+                        O: subject1,
+                        // Coluna P: Assunto 2 (segundo subject)
+                        P: subject2,
+                        // Coluna Q: Assunto 3 (terceiro subject)
+                        Q: subject3,
+                        // Coluna R: Assunto 4 (quarto subject)
+                        R: subject4,
+                        // Coluna S: Entrada Secundária (translators; illustrators)
+                        S: secondaryEntry,
+                        // Coluna T: Classificação (Dewey Decimal)
+                        T: book.dewey_decimal_class || "",
+                        // Coluna U: Pha (vazio por padrão)
+                        U: "",
+                        // Coluna P (segunda): Cor (vazio por padrão)
+                        P2: "",
+                        // Coluna Q (segunda): Observações (vazio por padrão)
+                        Q2: "",
+                        // Coluna R (segunda): ISBN (isbn)
+                        R2: book.isbn || ""
+                    };
+                });
+            }
+            
+            // Função para exportar para Excel com formatação específica
             function exportToExcel() {
                 if (books.length === 0) return;
                 
-                // Preparar dados para a planilha
-                const worksheetData = books.map(book => ({
-                    'Título': book.title,
-                    'Autor': book.author,
-                    'ISBN': book.isbn,
-                    'Ano': book.year,
-                    'Páginas': book.pages,
-                    'Editora': book.publisher,
-                    'Descrição': book.description
-                }));
+                const spreadsheetData = prepareSpreadsheetData(books);
+                
+                if (spreadsheetData.length === 0) {
+                    showStatus('Nenhum livro encontrado para exportar.', 'error');
+                    return;
+                }
                 
                 // Criar worksheet
-                const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+                const worksheet = XLSX.utils.json_to_sheet(spreadsheetData);
+                
+                // Definir cabeçalhos personalizados
+                const headers = [
+                    "", // A
+                    "Título", // B
+                    "Volume", // C
+                    "Autor", // D
+                    "Exemplar", // E
+                    "Edição", // F
+                    "Local", // G
+                    "Editora", // H
+                    "Data da Publicação", // I
+                    "Origem", // J
+                    "Data de entrada", // K
+                    "Nota de Conteúdo", // L
+                    "Coleções", // M
+                    "Notas gerais - Público alvo(campo 61 phl)", // N
+                    "Assunto", // O
+                    "Assunto", // P
+                    "Assunto", // Q
+                    "Assunto", // R
+                    "Entrada Secundária - ilustrador, adap...", // S
+                    "Classificação", // T
+                    "Pha", // U
+                    "Cor", // P (segunda)
+                    "Observações", // Q (segunda)
+                    "ISBN" // R (segunda)
+                ];
+                
+                // Adicionar cabeçalhos
+                XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
+                
+                // Ajustar largura das colunas
+                const colWidths = [
+                    { wch: 5 },   // A
+                    { wch: 40 },  // B - Título
+                    { wch: 10 },  // C - Volume
+                    { wch: 30 },  // D - Autor
+                    { wch: 15 },  // E - Exemplar
+                    { wch: 15 },  // F - Edição
+                    { wch: 20 },  // G - Local
+                    { wch: 25 },  // H - Editora
+                    { wch: 15 },  // I - Data
+                    { wch: 15 },  // J - Origem
+                    { wch: 15 },  // K - Data entrada
+                    { wch: 30 },  // L - Nota
+                    { wch: 20 },  // M - Coleções
+                    { wch: 30 },  // N - Notas gerais
+                    { wch: 25 },  // O - Assunto 1
+                    { wch: 25 },  // P - Assunto 2
+                    { wch: 25 },  // Q - Assunto 3
+                    { wch: 25 },  // R - Assunto 4
+                    { wch: 30 },  // S - Entrada Secundária
+                    { wch: 15 },  // T - Classificação
+                    { wch: 10 },  // U - Pha
+                    { wch: 10 },  // P2 - Cor
+                    { wch: 20 },  // Q2 - Observações
+                    { wch: 15 }   // R2 - ISBN
+                ];
+                worksheet['!cols'] = colWidths;
                 
                 // Criar workbook
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, 'Livros');
                 
                 // Gerar arquivo Excel
-                XLSX.writeFile(workbook, `livros_${new Date().toISOString().slice(0,10)}.xlsx`);
+                XLSX.writeFile(workbook, `livros_formatado_${new Date().toISOString().slice(0,10)}.xlsx`);
                 
-                showStatus('Planilha Excel gerada com sucesso!', 'success');
+                showStatus(`Planilha Excel com ${spreadsheetData.length} livro(s) gerada com sucesso!`, 'success');
             }
             
             // Função para exportar para CSV
             function exportToCSV() {
                 if (books.length === 0) return;
                 
+                const spreadsheetData = prepareSpreadsheetData(books);
+                
+                if (spreadsheetData.length === 0) {
+                    showStatus('Nenhum livro encontrado para exportar.', 'error');
+                    return;
+                }
+                
                 // Cabeçalhos CSV
-                const headers = ['Título', 'Autor', 'ISBN', 'Ano', 'Páginas', 'Editora', 'Descrição'];
+                const headers = [
+                    "", // A
+                    "Título", // B
+                    "Volume", // C
+                    "Autor", // D
+                    "Exemplar", // E
+                    "Edição", // F
+                    "Local", // G
+                    "Editora", // H
+                    "Data da Publicação", // I
+                    "Origem", // J
+                    "Data de entrada", // K
+                    "Nota de Conteúdo", // L
+                    "Coleções", // M
+                    "Notas gerais - Público alvo(campo 61 phl)", // N
+                    "Assunto", // O
+                    "Assunto", // P
+                    "Assunto", // Q
+                    "Assunto", // R
+                    "Entrada Secundária - ilustrador, adap...", // S
+                    "Classificação", // T
+                    "Pha", // U
+                    "Cor", // P (segunda)
+                    "Observações", // Q (segunda)
+                    "ISBN" // R (segunda)
+                ];
                 
                 // Dados CSV
-                const csvRows = books.map(book => [
-                    `"${book.title.replace(/"/g, '""')}"`,
-                    `"${book.author.replace(/"/g, '""')}"`,
-                    `"${book.isbn}"`,
-                    `"${book.year}"`,
-                    `"${book.pages}"`,
-                    `"${book.publisher.replace(/"/g, '""')}"`,
-                    `"${book.description.replace(/"/g, '""')}"`
+                const csvRows = spreadsheetData.map(book => [
+                    `"${book.A}"`,
+                    `"${book.B.replace(/"/g, '""')}"`,
+                    `"${book.C}"`,
+                    `"${book.D.replace(/"/g, '""')}"`,
+                    `"${book.E}"`,
+                    `"${book.F}"`,
+                    `"${book.G.replace(/"/g, '""')}"`,
+                    `"${book.H.replace(/"/g, '""')}"`,
+                    `"${book.I}"`,
+                    `"${book.J}"`,
+                    `"${book.K}"`,
+                    `"${book.L}"`,
+                    `"${book.M.replace(/"/g, '""')}"`,
+                    `"${book.N}"`,
+                    `"${book.O.replace(/"/g, '""')}"`,
+                    `"${book.P.replace(/"/g, '""')}"`,
+                    `"${book.Q.replace(/"/g, '""')}"`,
+                    `"${book.R.replace(/"/g, '""')}"`,
+                    `"${book.S.replace(/"/g, '""')}"`,
+                    `"${book.T}"`,
+                    `"${book.U}"`,
+                    `"${book.P2}"`,
+                    `"${book.Q2}"`,
+                    `"${book.R2}"`
                 ]);
                 
                 // Combinar cabeçalhos e dados
@@ -655,14 +899,14 @@
                 const url = URL.createObjectURL(blob);
                 
                 link.setAttribute('href', url);
-                link.setAttribute('download', `livros_${new Date().toISOString().slice(0,10)}.csv`);
+                link.setAttribute('download', `livros_formatado_${new Date().toISOString().slice(0,10)}.csv`);
                 link.style.visibility = 'hidden';
                 
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                showStatus('Arquivo CSV gerado com sucesso!', 'success');
+                showStatus(`Arquivo CSV com ${spreadsheetData.length} livro(s) gerado com sucesso!`, 'success');
             }
             
             // Função para limpar tudo
